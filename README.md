@@ -1,143 +1,316 @@
-# Jeu de la vie avancé
+# Advanced Game of Life - Implementation Guide
 
-## Table des matières
-- [Jeu de la vie avancé](#jeu-de-la-vie-avancé)
-  - [Table des matières](#table-des-matières)
-  - [Description](#description)
-  - [Packages utilisés](#packages-utilisés)
-  - [Paramètres](#paramètres)
-  - [Règles](#règles)
-  - [Créatures](#créatures)
-  - [Installation \& exécution](#installation--exécution)
+## Project Structure
 
-## Description
+```
+game_of_life/
+├── config.py          # Global configuration and constants
+├── terrain.py         # Terrain and environment management
+├── species.py         # Species definitions and parameters
+├── creature.py        # Individual creature logic and AI
+├── simulation.py      # Main simulation manager
+├── visualizer.py      # Tkinter-based visualization
+├── main.py           # Entry point
+├── requirements.txt   # Python dependencies
+└── README.md         # This file
+```
 
-Ce projet est une version avancée du Jeu de la vie. Un jeu créé pour observer le comportement et les instincts naturels des espèces.
+## Installation
 
-## Packages utilisés
+### 1. Prerequisites
 
-- Tkinter
+- Python 3.8 or higher
+- pip (Python package manager)
 
-## Paramètres
+### 2. Create Virtual Environment (Recommended)
 
-Chaque espèce est décrite par un ensemble de paramètres modulables. Ces paramètres influencent le comportement, la survie et les interactions entre espèces.
+```bash
+# Create virtual environment
+python -m venv venv
 
-- Nom
-  - Identifiant lisible de l'espèce.
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+```
 
-- Vitalité / Énergie
-  - Valeur actuelle et valeur maximale (ex. 0–100).
-  - Impact :
-    - Comportement (plus ou moins agressif selon niveau).
-    - Capacité à chasser/fuir.
-    - Taux d'épuisement à l'effort.
-  - Récupération :
-    - Récupération passive par repos.
-    - Récupération active par alimentation.
+### 3. Install Dependencies
 
-- Métabolisme
-  - Consommation d'énergie par unité de temps (ex. points/min).
-  - Influence la vitesse à laquelle la nourriture est consommée et la nécessité de rechercher de la nourriture.
+```bash
+pip install -r requirements.txt
+```
 
-- Alimentation
-  - Type de régime : herbivore / carnivore / omnivore / nécrophage.
-  - Types de nourriture préférés (plantes, petits animaux, carcasses, etc.).
-  - Capacité de stockage : quantité maximale de nourriture avant surpoids.
-  - Effets du surpoids :
-    - Réduction de la vitesse, augmentation de la vulnérabilité.
-    - Perte graduelle de points si la nourriture excède la capacité.
-  - Durée de survie sans nourriture (temps avant perte critique de vitalité).
+**Note:** Not all packages in `requirements.txt` are required for basic functionality. For minimal setup (GUI only):
 
-- Vitesse et locomotion
-  - Vitesse de base (cases/tick).
-  - Vitesse selon le milieu (coefficients par type de terrain : eau, forêt, plaine, montagne).
-  - Vitesse influencée par l'état (fatigue, surpoids, blessure).
-  - Capacité à voler (booléen + paramètres si vrai) :
-    - Altitude maximale, consommation d'énergie en vol, vitesse de vol.
-    - Restrictions (obstacles, conditions météo, terrains interdits).
-    - Avantages : ignore certains obstacles, meilleur repérage.
+```bash
+pip install numpy scipy Pillow matplotlib
+```
 
-- Sens et perception
-  - Champ de vision (distance en cases).
-  - Angle de vision (ex. 360° pour certains, 120° pour d'autres).
-  - Sensibilité aux sons/odeurs (détection à distance des proies/prédators).
-  - Précision de détection (probabilité de repérer une cible).
+## Usage
 
-- Taille et masse
-  - Influence la capacité à attaquer/être attaqué, la vitesse et la consommation d'énergie.
-  - Détermine quelles proies peuvent être chassées/consommées.
+### Graphical Mode (Default)
 
-- Comportement social
-  - Territorialité (territoire défini ou nomade).
-  - Sociabilité (solitaire, groupe, meute).
-  - Coopération en chasse, partage de nourriture, protection mutuelle.
+Run the simulation with visual interface:
 
-- Reproduction
-  - Age de maturité sexuelle.
-  - Fréquence / cooldown de reproduction.
-  - Taille de la portée.
-  - Conditions nécessaires (énergie minimale, proximité d'un partenaire, saison).
-  - Hérédité/mutation : probabilité de variations aléatoires des paramètres chez les descendants.
+```bash
+python main.py
+```
 
-- Défense et attaque
-  - Force d'attaque (dommages).
-  - Résistance/défense (réduction de dégâts).
-  - Comportements d'évitement (fuite) vs confrontation (attaque).
-  - Initiation d'agression dépendante de l'énergie, faim et taille relative de la cible.
+**Controls:**
+- **Start/Pause**: Toggle simulation running
+- **Step**: Advance one tick manually
+- **Reset**: Restart with new random terrain
+- **Space**: Play/Pause shortcut
+- **Esc**: Quit application
 
-- Cycle de vie et vieillissement
-  - Espérance de vie / durée de vie maximale.
-  - Dégradation progressive des capacités avec l'âge (vitesse, vision, fertilité).
-  - Mort naturelle vs mort par prédation/famine.
+### Headless Mode
 
-- Comportements spécifiques / IA
-  - Priorités (ex. survie > reproduction > exploration).
-  - Stratégies de recherche de nourriture (patrouille, affût, poursuite).
-  - Évasion (distance de fuite, manœuvres).
-  - Comportement d'apprentissage ou adaptation si souhaité (mémoire d'emplacements riches en nourriture).
+Run without graphics for data collection:
 
-- Variables environnementales influentes
-  - Sensibilité au climat (froid/chaleur) : effet sur vitalité et comportement.
-  - Effet de la météo sur vol (vent, pluie) si vol implémenté.
-  - Disponibilité saisonnière de ressources.
+```bash
+python main.py --headless --ticks 5000
+```
 
-- Paramètres techniques / gameplay
-  - Priorité CPU : fréquence de mise à jour par espèce (pour optimiser perf).
-  - Valeurs par défaut recommandées et plages acceptables pour l'équilibrage.
-  - Identifiants pour la sauvegarde/chargement d'instances.
+This will simulate 5000 ticks and display statistics every 100 ticks.
 
-Exemple résumé d'une fiche d'espèce (suggestion de structure JSON) :
-- name: "Nom"
-- max_health: 100
-- energy: 100
-- metabolism: 1.2
-- diet: ["plants", "small_animals"]
-- food_capacity: 30
-- starvation_time: 300
-- base_speed: 1.0
-- terrain_speed: {plaine:1.0, foret:0.8, eau:0.2}
-- can_fly: true
-- fly_speed: 2.0
-- vision_range: 6
-- social: "meute"
-- reproduction: {maturity:50, cooldown:120, litter:3}
-- aggression: 0.4
-- lifespan: 200
+### Benchmark Mode
 
-Ces paramètres permettent de créer des espèces variées (volantes ou non), équilibrer interactions et simuler un écosystème riche et dynamique.
+Test performance:
 
-## Règles
+```bash
+python main.py --benchmark --ticks 1000
+```
 
-- Toutes les espèces ont un niveau de nourriture maximal
-  - Si elle mange quelque chose, elle gagne des points de nourriture.
-  - Si elle arrive à 0 point de nourriture :
-    - Si la créature était en surpois, elle perds progressivement ces points de surpoids en même temps que sa vitalité.
-    - Si ce n'est pas le cas alors elle ne perds que sa vitalité.
+### Command Line Options
 
-## Créatures
+```bash
+python main.py [OPTIONS]
 
-|Nom|Vitalité|Nourriture|
-|---|--------|----------|
-|Herbivore # 1|5|20|
+Options:
+  --headless          Run without GUI
+  --benchmark         Run performance benchmark
+  --width WIDTH       Grid width (default: 100)
+  --height HEIGHT     Grid height (default: 100)
+  --ticks TICKS       Number of ticks for headless mode (default: 1000)
+  --quiet             Suppress periodic statistics
+  -h, --help          Show help message
+```
 
-## Installation & exécution
+### Examples
+
+```bash
+# Large grid with GUI
+python main.py --width 200 --height 200
+
+# Long headless simulation
+python main.py --headless --ticks 10000 --quiet
+
+# Performance test on large grid
+python main.py --benchmark --width 150 --height 150 --ticks 2000
+```
+
+## Features Implemented
+
+### |Core Systems
+- **Terrain Generation**: Multiple terrain types (plains, forests, water, mountains)
+- **Plant Growth**: Dynamic vegetation system
+- **Energy & Metabolism**: Creatures consume energy and food
+- **Movement System**: Speed influenced by terrain and creature state
+- **Vision & Perception**: Creatures detect food and threats within range
+- **Hunting & Predation**: Carnivores and omnivores hunt prey
+- **Reproduction**: Age-based mating with offspring
+- **Aging & Death**: Natural lifespan and starvation mechanics
+- **Social Behavior**: Species-specific social structures
+
+### |Species Implemented
+1. **Herbivore #1** - Fast, small herbivore with high reproduction
+2. **Herbivore #2** - Large herd animal with defensive behavior
+3. **Omnivore #1** - Opportunistic hunter and forager
+4. **Carnivore #1** - Solitary ambush predator
+
+### 🔄 Advanced Features (Framework Ready)
+- Flight mechanics (framework in place, not fully implemented)
+- Mutation system (basic implementation)
+- Advanced AI behaviors (pathfinding, memory)
+- Weather system
+- Seasonal changes
+- Data export and analysis
+
+## Architecture
+
+### Module Descriptions
+
+**config.py**
+- Global constants and configuration
+- Terrain types, diet types, social behaviors
+- Visual color definitions
+
+**terrain.py**
+- `Terrain` class managing the environment grid
+- Procedural terrain generation
+- Plant growth and consumption
+
+**species.py**
+- `SpeciesConfig` dataclass defining all species parameters
+- Predefined species configurations
+- Species registry for easy access
+
+**creature.py**
+- `Creature` class representing individual entities
+- AI decision making (survival, reproduction, exploration)
+- Movement, hunting, fleeing, and feeding behaviors
+- Energy and health management
+
+**simulation.py**
+- `Simulation` class orchestrating all components
+- Main update loop
+- Reproduction handling
+- Statistics tracking
+
+**visualizer.py**
+- `Visualizer` class using Tkinter
+- Real-time rendering of terrain, plants, and creatures
+- Control panel with start/pause/step/reset
+- Statistics display
+
+**main.py**
+- Entry point with command-line interface
+- Multiple execution modes (graphical, headless, benchmark)
+
+## Extending the Simulation
+
+### Adding a New Species
+
+Edit `species.py`:
+
+```python
+NEW_SPECIES = SpeciesConfig(
+    name="new_species",
+    maxHealth=50,
+    maxEnergy=50,
+    metabolism=1.0,
+    dietType=DIET_OMNIVORE,
+    dietPreferences=[FOOD_PLANTS, FOOD_SMALL_ANIMALS],
+    foodCapacity=20,
+    starvationTime=150,
+    baseSpeed=1.2,
+    terrainSpeed={
+        TERRAIN_PLAIN: 1.0,
+        TERRAIN_FOREST: 0.8,
+        TERRAIN_WATER: 0.5,
+        TERRAIN_MOUNTAIN: 0.7
+    },
+    canFly=False,
+    visionRange=6,
+    visionAngle=270,
+    soundPerception=0.6,
+    size=10,
+    socialBehavior=SOCIAL_GROUP,
+    maturityAge=30,
+    reproductionCooldown=100,
+    litterSize=3,
+    aggression=0.3,
+    attackPower=7,
+    defense=5,
+    lifespan=120,
+    behavior="flexible"
+)
+
+# Add to registry
+SPECIES_REGISTRY["new_species"] = NEW_SPECIES
+```
+
+Add color to `config.py`:
+
+```python
+COLORS = {
+    # ... existing colors ...
+    "new_species": (150, 75, 200),
+}
+```
+
+Update initial population in `simulation.py` `_initializeCreatures()`:
+
+```python
+initialPopulations = {
+    "herbivore_1": 30,
+    "herbivore_2": 15,
+    "omnivore_1": 10,
+    "carnivore_1": 5,
+    "new_species": 8,  # Add your species
+}
+```
+
+### Customizing Behavior
+
+Modify the `_makeDecision()` method in `creature.py` to change AI behavior priorities.
+
+### Adjusting Parameters
+
+Edit `config.py` to change global simulation parameters like grid size, plant spawn rate, or metabolism rates.
+
+## Development Best Practices
+
+### Code Style
+- Variables: camelCase (`myVariable`)
+- Classes: PascalCase (`MyClass`)
+- Constants: UPPER_SNAKE_CASE (`MY_CONSTANT`)
+- All code in English
+- Comprehensive docstrings
+
+### Testing
+
+Run tests (when implemented):
+
+```bash
+pytest tests/
+```
+
+### Code Formatting
+
+```bash
+# Format code
+black *.py
+
+# Check style
+flake8 *.py
+```
+
+## Performance Considerations
+
+- **Grid Size**: Larger grids increase computation time significantly
+- **Population**: More creatures = slower simulation
+- **Optimization**: Consider using `numba` JIT compilation for critical loops
+- **Headless Mode**: Much faster than graphical mode for large simulations
+
+## Known Limitations
+
+- Flight mechanics defined but not fully implemented
+- No save/load functionality yet
+- Limited mutation system
+- Simple AI behaviors (no pathfinding or learning)
+- No weather or seasonal systems yet
+
+## Future Enhancements
+
+- [ ] Complete flight mechanics implementation
+- [ ] Advanced pathfinding (A* algorithm)
+- [ ] Memory system for creatures
+- [ ] Weather and seasonal effects
+- [ ] Data export to CSV/HDF5
+- [ ] Advanced statistics and graphs
+- [ ] Save/load simulations
+- [ ] GUI configuration panel
+- [ ] Pygame renderer as alternative
+- [ ] Multi-threading for performance
+- [ ] Genetic algorithm optimization
+- [ ] Ecosystem balance analysis tools
+
+## Contributing
+
+This is an educational project implementing the specifications from your README. Feel free to extend and modify as needed!
+
+## License
+
+Open source - use and modify freely for learning and experimentation.
